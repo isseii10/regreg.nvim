@@ -14,28 +14,41 @@ function M.get_registers()
 	return registers
 end
 
--- レジスタの内容を新しいバッファに表示する
+-- フローティングウィンドウを作成してレジスタを表示
 function M.show_registers()
 	local registers = M.get_registers()
 
-	-- 新しいバッファを作成
-	vim.cmd("vnew")
-	local buf = vim.api.nvim_get_current_buf()
-
-	-- バッファを読み取り専用に設定
-	vim.api.nvim_buf_set_option(buf, "modifiable", true)
-	vim.api.nvim_buf_set_option(buf, "buftype", "nofile")
-	vim.api.nvim_buf_set_option(buf, "bufhidden", "wipe")
-
-	-- レジスタの内容をフォーマットして挿入
+	-- レジスタの内容をフォーマット
 	local lines = {}
 	for _, reg in ipairs(registers) do
 		table.insert(lines, string.format("%s: %s", reg.name, reg.content:gsub("\n", "\\n")))
 	end
-	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 
-	-- 読み取り専用に変更
+	-- ウィンドウサイズを計算
+	local width = math.max(30, vim.fn.winwidth(0) * 0.5)
+	local height = math.min(#lines + 2, vim.fn.winheight(0) * 0.8)
+
+	-- フロートウィンドウの設定
+	local opts = {
+		relative = "editor",
+		width = math.floor(width),
+		height = math.floor(height),
+		col = math.floor((vim.o.columns - width) / 2),
+		row = math.floor((vim.o.lines - height) / 2),
+		style = "minimal",
+		border = "rounded",
+	}
+
+	-- 新しいバッファを作成
+	local buf = vim.api.nvim_create_buf(false, true)
+	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 	vim.api.nvim_buf_set_option(buf, "modifiable", false)
+
+	-- フローティングウィンドウを作成
+	vim.api.nvim_open_win(buf, true, opts)
+
+	-- キーマッピングを追加して閉じる
+	vim.api.nvim_buf_set_keymap(buf, "n", "q", ":q<CR>", { noremap = true, silent = true })
 end
 
 -- プラグインのコマンドを設定
