@@ -1,5 +1,7 @@
 local M = {}
 
+local api = vim.api
+
 local reg_names = {
 	'"',
 	"0",
@@ -49,7 +51,8 @@ local reg_names = {
 	":",
 }
 
--- Neovimのレジスタ一覧を取得する関数
+---@private
+---@return table
 function M.get_registers()
 	local registers = {}
 	for _, reg in ipairs(reg_names) do
@@ -61,15 +64,24 @@ function M.get_registers()
 	return registers
 end
 
--- フローティングウィンドウを作成してレジスタを表示
 function M.show_registers()
 	local registers = M.get_registers()
 
-	-- レジスタの内容をフォーマット
+	-- フローティングウィンドウ用のバッファを作成
+	local buf = api.nvim_create_buf(false, true)
+	-- フローティングウィンドウの内容を生成
 	local lines = {}
 	for _, reg in ipairs(registers) do
-		table.insert(lines, string.format("%s: %s", reg.name, reg.content:gsub("\n", "\\n")))
+		table.insert(lines, reg.name .. ": " .. reg.content)
 	end
+	api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+
+	-- レジスタ番号部分を編集不可に設定
+	for i, reg in ipairs(registers) do
+		api.nvim_buf_add_highlight(buf, -1, "Comment", i - 1, 0, 3) -- "1: " 部分にハイライト
+	end
+	api.nvim_buf_set_option(buf, "modifiable", true)
+	api.nvim_buf_set_option(buf, "readonly", false)
 
 	-- ウィンドウサイズを計算
 	local width = math.max(30, vim.fn.winwidth(0) * 0.5)
@@ -93,6 +105,12 @@ function M.show_registers()
 
 	-- フローティングウィンドウを作成
 	vim.api.nvim_open_win(buf, true, opts)
+
+	-- レジスタ番号部分を再編集不可に設定
+	for i, reg in ipairs(registers) do
+		api.nvim_buf_set_text(buf, i - 1, 0, i - 1, 3, { reg.reg .. ": " })
+		api.nvim_buf_set_option(buf, "modifiable", true)
+	end
 
 	-- キーマッピングを追加して閉じる
 	vim.api.nvim_buf_set_keymap(buf, "n", "q", ":q<CR>", { noremap = true, silent = true })
