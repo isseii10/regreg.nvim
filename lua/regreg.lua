@@ -69,10 +69,11 @@ function M.show_registers()
 
 	-- フローティングウィンドウ用のバッファを作成
 	local buf = api.nvim_create_buf(false, true)
+
 	-- フローティングウィンドウの内容を生成
 	local lines = {}
 	for _, reg in ipairs(registers) do
-		table.insert(lines, reg.name .. ": " .. reg.content)
+		table.insert(lines, reg.reg .. ": " .. reg.content)
 	end
 	api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 
@@ -83,28 +84,17 @@ function M.show_registers()
 	api.nvim_buf_set_option(buf, "modifiable", true)
 	api.nvim_buf_set_option(buf, "readonly", false)
 
-	-- ウィンドウサイズを計算
-	local width = math.max(30, vim.fn.winwidth(0) * 0.5)
-	local height = math.min(#lines + 2, vim.fn.winheight(0) * 0.8)
-
-	-- フロートウィンドウの設定
+	-- フローティングウィンドウを表示
 	local opts = {
 		relative = "editor",
-		width = math.floor(width),
-		height = math.floor(height),
-		col = math.floor((vim.o.columns - width) / 2),
-		row = math.floor((vim.o.lines - height) / 2),
+		width = 40,
+		height = #lines,
+		col = 10,
+		row = 5,
 		style = "minimal",
 		border = "rounded",
 	}
-
-	-- 新しいバッファを作成
-	local buf = vim.api.nvim_create_buf(false, true)
-	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-	vim.api.nvim_buf_set_option(buf, "modifiable", false)
-
-	-- フローティングウィンドウを作成
-	vim.api.nvim_open_win(buf, true, opts)
+	local win = api.nvim_open_win(buf, true, opts)
 
 	-- レジスタ番号部分を再編集不可に設定
 	for i, reg in ipairs(registers) do
